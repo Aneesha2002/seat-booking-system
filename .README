@@ -1,0 +1,22 @@
+# Event Seat Booking System
+
+Backend-focused project to demonstrate race condition handling in seat booking.
+
+## Tech Stack
+- FastAPI
+- Python
+- SQLite
+- React (minimal UI)
+
+## Status
+- Backend APIs working
+- Seats displayed on frontend
+- Locking & booking logic in progress
+
+## Run Locally
+
+### Backend
+```bash
+cd event-booking
+source venv/bin/activate  # Windows: venv\Scripts\activate
+uvicorn app.main:app --reload
