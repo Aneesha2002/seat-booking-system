@@ -3,7 +3,9 @@ from app.db import Base
 
 class Seat(Base):
     __tablename__ = "seats"
-    id = Column(Integer,primary_key=True,index=True)
-    status = Column(String,default="AVAILABLE") # AVAILABLE | LOCKED | BOOKED 
-    locked_at= Column(DateTime,nullable=True)
-    locked_by = Column(Integer,nullable=True)
+
+    id = Column(Integer, primary_key=True)
+    status = Column(String, default="available", nullable=False)
+    locked_at = Column(DateTime, nullable=True)
+    locked_by = Column(Integer, nullable=True)
+
