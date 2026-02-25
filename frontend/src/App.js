@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-const API = "https://seat-booking-backend-9sam.onrender.com";
+const API = process.env.REACT_APP_API_URL;
 
 const getUserIdFromToken = (token) => {
   if (!token) return null;
