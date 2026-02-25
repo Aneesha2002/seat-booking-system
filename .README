@@ -1,40 +1,71 @@
-# Event Seat Booking System
+Seat Booking System
 
-A full-stack seat booking system with backend built in **FastAPI** and frontend in **React**. This project demonstrates seat management with concurrency handling, lock timeouts, and booking functionality. Designed for demonstrating backend expertise in Python and REST APIs.
+A full-stack seat booking application built with FastAPI and React, simulating real-world booking behavior with secure authentication, seat locking, and payment failure handling.
 
-## Features Completed
+Tech Stack
 
-### Backend (FastAPI)
-- **Seat Management:** Initialize 30 seats with unique IDs.
-- **Lock & Booking System:**
-  - Lock a seat for a specific user.
-  - Book a seat only if the user holds the lock.
-  - Automatic lock expiration after 1 minute.
-- **Concurrency Handling:** Supports multiple users trying to lock the same seat (race condition handled via database transactions and `with_for_update()`).
-- **CORS Support:** React frontend can communicate with FastAPI backend seamlessly.
-- **Reset & Cleanup:** Reset all seats; expired locks are automatically cleared on fetch.
-- **User-Specific Locks:** Only the user who locked a seat can book it; others see the seat as unavailable.
-- **Auto-Refreshing Frontend:** React app fetches updated seat status every few seconds for live updates.
+Backend: FastAPI, SQLAlchemy, JWT, SQLite
 
-### Frontend (React)
-- Display 30 seats as a grid.
-- Color-coded seats: 🟩 Available, 🟨 Locked, 🟥 Booked.
-- Clickable logic:
-  - First click → lock seat (yellow).
-  - Second click by same user → book seat (red).
-  - Other users see locked seats as unclickable.
-- Supports multiple users via query param (`?user=1`, `?user=2`).
-- Responsive and interactive UI without page reloads.
+Frontend: React, Fetch API
 
-## Tech Stack
-- **Backend:** FastAPI, SQLAlchemy, SQLite/PostgreSQL (configurable)
-- **Frontend:** React, useState, useEffect
-- **Concurrency:** Database-level row locking for race conditions
-- **APIs:** RESTful endpoints (`/seats`, `/seats/{id}/lock`, `/seats/{id}/book`)
+Auth: Token-based (JWT)
 
-## How to Run
+Authentication
 
-### Backend
-```bash
-cd backend
-python -m uvicorn main:app --reload
+User signup & login
+
+JWT issued on authentication
+
+Protected seat APIs
+
+Token stored in localStorage
+
+Seat Booking Logic
+
+Seats have three states:
+
+Available – free to lock
+
+Locked – temporarily held (1-minute timeout for testing)
+
+Booked – permanently reserved
+
+Rules
+
+Only one user can lock a seat at a time
+
+Only the locker can book the seat
+
+Locks automatically expire
+
+Other users see locked seats as unavailable
+
+Payment Simulation
+
+Booking randomly fails to simulate real payment flow
+
+On failure, the seat remains locked
+
+On success, the seat is booked
+
+Multi-User Behavior
+
+Green → Available
+
+Orange → Locked by you
+
+Grey → Locked by another user
+
+Red → Booked
+
+Run Locally
+
+Backend:
+uvicorn main:app --reload
+
+Frontend:
+npm install
+npm start
+
+Author:
+Aneesha Dsouza
