@@ -2,10 +2,16 @@
 venv/
 __pycache__/
 *.pyc
+*.sqlite3
 
 # Node
 node_modules/
 build/
+dist/
 
 # Environment
 .env
+
+# OS / Editor
+.DS_Store
+Thumbs.db
