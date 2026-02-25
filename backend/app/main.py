@@ -49,7 +49,7 @@ def startup():
 # Auth Routes
 # =========================
 
-@app.post("/signup", response_model=Token)
+'''@app.post("/signup", response_model=Token)
 def signup(user: UserCreate, db: Session = Depends(get_db)):
     existing = db.query(User).filter(User.username == user.username).first()
     if existing:
@@ -70,7 +70,32 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     db.refresh(new_user)
 
     token = create_access_token({"sub": str(new_user.id)})
-    return {"access_token": token, "token_type": "bearer"}
+    return {"access_token": token, "token_type": "bearer"}'''
+
+@app.post("/signup", response_model=Token)
+def signup(user: UserCreate, db: Session = Depends(get_db)):
+    try:
+        existing = db.query(User).filter(User.username == user.username).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Username already exists")
+
+        if len(user.password) < 6:
+            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+
+        new_user = User(
+            username=user.username,
+            hashed_password=hash_password(user.password)
+        )
+
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        token = create_access_token({"sub": str(new_user.id)})
+        return {"access_token": token, "token_type": "bearer"}
+    except Exception as e:
+        print("Signup error:", e)
+        raise HTTPException(status_code=500, detail="Internal server error")
 
 @app.post("/login", response_model=Token)
 def login(user: UserCreate, db: Session = Depends(get_db)):
