@@ -10,13 +10,15 @@ from app.models import Seat, Base, User
 from app.schemas import SeatOut, UserCreate, Token
 from app.auth import create_access_token, get_current_user
 from app.auth import verify_password,hash_password
-
 # --- App setup ---
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://seat-booking-ui.vercel.app"]
+    allow_origins=[
+        "https://seat-booking-ui.vercel.app",
+        "http://localhost:3000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -57,7 +59,7 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
     if len(user.password) < 6:
         raise HTTPException(status_code=400,detail="Password must be at least 6 characters")
 
-    from app.auth import hash_password, create_access_token
+
 
     new_user = User(
         username=user.username,

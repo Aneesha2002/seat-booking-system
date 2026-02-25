@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 const API = process.env.REACT_APP_API_URL;
+console.log("API URL:", API);
 
 const getUserIdFromToken = (token) => {
   if (!token) return null;
