@@ -126,15 +126,26 @@ function App() {
   fetchSeats();
 };
 
-  useEffect(() => {
+useEffect(() => {
   if (!token) return;
 
-  const interval = setInterval(() => {
-    fetchSeats();
-  }, 1000);
+  const getSeats = async () => {
+    try {
+      const res = await fetch(`${API}/seats`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setSeats(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+  getSeats();
+  const interval = setInterval(getSeats, 1000);
 
   return () => clearInterval(interval);
-}, [token]);
+}, [token]); 
 
   /* ---------------- UI ---------------- */
 
