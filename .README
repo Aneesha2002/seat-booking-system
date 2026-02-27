@@ -1,71 +1,76 @@
-Seat Booking System
+# Seat Booking System
 
-A full-stack seat booking application built with FastAPI and React, simulating real-world booking behavior with secure authentication, seat locking, and payment failure handling.
+A full-stack seat booking application built with FastAPI and React, designed to demonstrate secure authentication, backend seat-locking logic, and concurrent booking behavior.
 
-Tech Stack
+## Overview
+The system simulates real-world seat booking workflows where multiple users interact with the same resources. Temporary seat locking is implemented at the backend to prevent double bookings and handle concurrent access safely.
 
-Backend: FastAPI, SQLAlchemy, JWT, SQLite
+## Tech Stack
 
-Frontend: React, Fetch API
+**Backend**
+- FastAPI
+- SQLAlchemy
+- JWT-based authentication
+- SQLite (for demo purposes)
+- Deployed on Render
 
-Auth: Token-based (JWT)
+**Frontend**
+- React
+- Fetch API
+- Deployed on Vercel
 
-Authentication
+## Authentication
+- User signup and login using JWT
+- Passwords securely hashed with bcrypt
+- Protected seat-related APIs
+- Authentication token stored client-side for session handling
 
-User signup & login
+## Seat Booking Logic
 
-JWT issued on authentication
+Each seat can be in one of the following states:
+- **Available** – free to be locked
+- **Locked** – temporarily held by a user (1-minute timeout for testing)
+- **Booked** – permanently reserved
 
-Protected seat APIs
+### Rules
+- Only one user can lock a seat at a time
+- Only the user who locked a seat can book it
+- Locks automatically expire after a timeout
+- Locked seats are visible to other users as unavailable
 
-Token stored in localStorage
+## Payment Simulation
+- Booking randomly fails to simulate real-world payment behavior
+- On failure, the seat remains locked
+- On success, the seat is marked as booked
 
-Seat Booking Logic
+## Multi-User Behavior (UI Indicators)
+- **Green** → Available
+- **Orange** → Locked by current user
+- **Grey** → Locked by another user
+- **Red** → Booked
 
-Seats have three states:
+## Live Demo
+- Frontend: https://seat-booking-system-omega.vercel.app/
+- Backend API: https://seat-booking-backend-9sam.onrender.com
 
-Available – free to lock
+> ⚠️ Note: The backend runs on Render’s free tier and may take a few seconds to respond on the first request due to cold starts.
 
-Locked – temporarily held (1-minute timeout for testing)
+##  Run Locally
 
-Booked – permanently reserved
+**Backend**
+```bash
+pip install -r requirements.txt
+uvicorn app.main:app --reload
 
-Rules
+Frontend
 
-Only one user can lock a seat at a time
-
-Only the locker can book the seat
-
-Locks automatically expire
-
-Other users see locked seats as unavailable
-
-Payment Simulation
-
-Booking randomly fails to simulate real payment flow
-
-On failure, the seat remains locked
-
-On success, the seat is booked
-
-Multi-User Behavior
-
-Green → Available
-
-Orange → Locked by you
-
-Grey → Locked by another user
-
-Red → Booked
-
-Run Locally
-
-Backend:
-uvicorn main:app --reload
-
-Frontend:
 npm install
 npm start
 
-Author:
-Aneesha Dsouza
+## Design Notes
+
+Seat locking is handled at the backend to avoid race conditions during concurrent booking attempts
+
+JWT authentication is used to secure access to protected endpoints
+
+SQLite is used for simplicity. The design supports migration to a persistent database such as PostgreSQL
