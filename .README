@@ -1,76 +1,181 @@
 # Seat Booking System
 
-A full-stack seat booking application built with FastAPI and React, designed to demonstrate secure authentication, backend seat-locking logic, and concurrent booking behavior.
+A full-stack seat booking application built with FastAPI and React.
+The project demonstrates secure authentication, backend seat-locking logic, and how concurrent booking attempts can be handled safely.
+
+---
 
 ## Overview
-The system simulates real-world seat booking workflows where multiple users interact with the same resources. Temporary seat locking is implemented at the backend to prevent double bookings and handle concurrent access safely.
+
+This system simulates a real-world seat booking workflow where multiple users interact with the same seats at the same time.
+
+To prevent double booking, the backend implements a **temporary seat locking mechanism**. When a user selects a seat, it is locked for a short period so other users cannot book it simultaneously. If the booking is completed successfully, the seat becomes permanently reserved. If not, the lock expires and the seat becomes available again.
+
+---
 
 ## Tech Stack
 
-**Backend**
-- FastAPI
-- SQLAlchemy
-- JWT-based authentication
-- SQLite (for demo purposes)
-- Deployed on Render
+### Backend
 
-**Frontend**
-- React
-- Fetch API
-- Deployed on Vercel
+* Python
+* FastAPI
+* SQLAlchemy
+* JWT authentication
+* SQLite (for demonstration)
+* Deployment: Render
+
+### Frontend
+
+* React
+* Fetch API
+* Deployment: Vercel
+
+---
 
 ## Authentication
-- User signup and login using JWT
-- Passwords securely hashed with bcrypt
-- Protected seat-related APIs
-- Authentication token stored client-side for session handling
+
+The system uses **JWT-based authentication** to secure protected endpoints.
+
+Features:
+
+* User signup and login
+* Password hashing using bcrypt
+* JWT token generation after successful login
+* Protected seat APIs requiring authentication
+
+The token is stored on the client side and sent with API requests to verify the user.
+
+---
 
 ## Seat Booking Logic
 
-Each seat can be in one of the following states:
-- **Available** – free to be locked
-- **Locked** – temporarily held by a user (1-minute timeout for testing)
-- **Booked** – permanently reserved
+Each seat can exist in one of three states:
 
-### Rules
-- Only one user can lock a seat at a time
-- Only the user who locked a seat can book it
-- Locks automatically expire after a timeout
-- Locked seats are visible to other users as unavailable
+* **Available** – Seat is free and can be locked
+* **Locked** – Temporarily reserved by a user
+* **Booked** – Permanently reserved
+
+### Booking Flow
+
+1. User logs in.
+2. User views the list of seats.
+3. User locks a seat.
+4. The seat becomes temporarily reserved for that user.
+5. The user confirms booking.
+6. If successful, the seat becomes permanently booked.
+
+---
+
+## Booking Rules
+
+* Only one user can lock a seat at a time
+* Only the user who locked a seat can complete the booking
+* Seat locks automatically expire after a timeout
+* Locked seats appear unavailable to other users
+* Seats cannot be booked unless they are first locked
+
+---
+
+## Concurrency Handling
+
+To reduce race conditions when multiple users attempt to book the same seat simultaneously, the backend uses **row-level database locking** through SQLAlchemy.
+
+The system uses:
+
+* database transactions
+* row locking with `with_for_update()`
+* seat status validation
+
+This ensures that concurrent requests cannot update the same seat record at the same time.
+
+---
+
+## Lock Expiration
+
+Seats are locked temporarily to simulate real-world booking flows.
+
+For testing purposes:
+
+* Lock timeout is **1 minute**
+
+If a user does not complete the booking within this time:
+
+* the lock expires
+* the seat becomes available again
+
+---
 
 ## Payment Simulation
-- Booking randomly fails to simulate real-world payment behavior
-- On failure, the seat remains locked
-- On success, the seat is marked as booked
 
-## Multi-User Behavior (UI Indicators)
-- **Green** → Available
-- **Orange** → Locked by current user
-- **Grey** → Locked by another user
-- **Red** → Booked
+The booking process includes a simple payment simulation.
+
+* Booking randomly fails to mimic real-world payment behavior
+* If payment fails, the seat remains locked until the lock expires
+* If payment succeeds, the seat is marked as **booked**
+
+---
+
+## Multi-User UI Indicators
+
+The frontend visually shows seat status:
+
+* **Green** → Available
+* **Orange** → Locked by current user
+* **Grey** → Locked by another user
+* **Red** → Booked
+
+This allows users to see real-time seat availability.
+
+---
 
 ## Live Demo
-- Frontend: https://seat-booking-system-omega.vercel.app/
-- Backend API: https://seat-booking-backend-9sam.onrender.com
 
-> ⚠️ Note: The backend runs on Render’s free tier and may take a few seconds to respond on the first request due to cold starts.
+Frontend
+https://seat-booking-system-omega.vercel.app/
 
-##  Run Locally
+Backend API
+https://seat-booking-backend-9sam.onrender.com
 
-**Backend**
-```bash
+Note:
+The backend runs on Render’s free tier and may take a few seconds to respond on the first request due to cold starts.
+
+---
+
+## Run Locally
+
+### Backend
+
+Install dependencies and start the API server.
+
 pip install -r requirements.txt
 uvicorn app.main:app --reload
 
-Frontend
+---
+
+### Frontend
+
+Install dependencies and start the React application.
 
 npm install
 npm start
 
+---
+
 ## Design Notes
 
-Seat locking is handled at the backend to avoid race conditions during concurrent booking attempts
+* Seat locking is implemented in the backend to prevent concurrent booking conflicts
+* Row-level database locking is used to reduce race conditions
+* JWT authentication secures protected endpoints
+* SQLite is used for simplicity, but the design supports migration to databases such as PostgreSQL
 
-JWT authentication is used to secure access to protected endpoints
+---
 
-SQLite is used for simplicity. The design supports migration to a persistent database such as PostgreSQL
+## Possible Improvements
+
+Future enhancements could include:
+
+* Integration with a real payment gateway
+* Redis-based distributed locking
+* Real-time seat updates using WebSockets
+* Booking history for users
+* Migration to PostgreSQL for production-scale usage
