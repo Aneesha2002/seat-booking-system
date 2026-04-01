@@ -75,6 +75,21 @@ Each seat can exist in one of three states:
 * Seats cannot be booked unless they are first locked
 
 ---
+## API Endpoints
+
+### Authentication
+- POST `/signup` — Register a new user
+- POST `/login` — Authenticate user and receive JWT token
+
+### Health
+- GET `/` — API health check
+
+### Seats (JWT Required)
+- POST `/seats/init` — Initialize seats
+- GET `/seats` — Retrieve all seats and their status
+- POST `/seats/{seat_id}/lock` — Lock a seat temporarily
+- POST `/seats/{seat_id}/book` — Confirm booking for a locked seat
+- POST `/seats/reset` — Reset all seats (testing purpose)
 
 ## Concurrency Handling
 
