@@ -157,13 +157,13 @@ def lock_seat(
     if (
         seat.status == "locked"
         and seat.locked_at
-        and datetime.now(timezone.utc)- seat.locked_at < LOCK_TIMEOUT
+        and datetime.utcnow()- seat.locked_at < LOCK_TIMEOUT
         and seat.locked_by != current_user
     ):
         raise HTTPException(400, "Seat temporarily locked")
 
     seat.status = "locked"
-    seat.locked_at = datetime.now(timezone.utc)
+    seat.locked_at = datetime.utcnow()
     seat.locked_by = current_user
 
     db.commit()
@@ -195,7 +195,7 @@ def book_seat(
     if seat.locked_by != current_user:
         raise HTTPException(403, "Not your seat")
 
-    if datetime.now(timezone.utc) - seat.locked_at > LOCK_TIMEOUT:
+    if datetime.utcnow() - seat.locked_at > LOCK_TIMEOUT:
         raise HTTPException(400, "Lock expired")
 
     # --- Payment simulation ---
@@ -216,7 +216,7 @@ def book_seat(
 def cleanup_expired_locks(db: Session):
     expired = db.query(Seat).filter(
         Seat.status == "locked",
-        Seat.locked_at < datetime.now(timezone.utc) - LOCK_TIMEOUT
+        Seat.locked_at < datetime.utcnow() - LOCK_TIMEOUT
     ).all()
 
     for seat in expired:
