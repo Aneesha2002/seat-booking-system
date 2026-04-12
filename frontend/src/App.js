@@ -96,35 +96,55 @@ function App() {
     setSeats(Array.isArray(data) ? data : []);
   };
 
-  const lockSeat = async (id) => {
-    await fetch(`${API}/seats/${id}/lock`, {
+ const lockSeat = async (id) => {
+  try {
+    const res = await fetch(`${API}/seats/${id}/lock`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
       },
     });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      setMessage(err.detail || "Lock failed");
+      return;
+    }
+
     fetchSeats();
-  };
+  } catch (err) {
+    console.error(err);
+  }
+};
 
   const bookSeat = async (id) => {
   setMessage("");
 
-  const res = await fetch(`${API}/seats/${id}/book`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${token}`,
-    },
-  });
+  try {
+    const res = await fetch(`${API}/seats/${id}/book`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+    });
 
-  if (!res.ok) {
-    const err = await res.json();
-    setMessage(err.detail || "Booking failed");
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
+      setMessage(data.detail || `Booking failed (${res.status})`);
+      fetchSeats();
+      return;
+    }
+
+    setMessage("✅ Seat booked successfully!");
     fetchSeats();
-    return;
-  }
 
-  setMessage("✅ Seat booked successfully!");
-  fetchSeats();
+  } catch (err) {
+    setMessage("Network error");
+    console.error(err);
+  }
 };
 
 useEffect(() => {
