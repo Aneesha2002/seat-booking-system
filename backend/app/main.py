@@ -144,7 +144,7 @@ def lock_seat(
         seat = (
         db.query(Seat)
         .filter(Seat.id == seat_id)
-        .with_for_update(nowait=True)
+        .with_for_update()
         .first()
         )
     except OperationalError:
@@ -182,7 +182,7 @@ def book_seat(
         seat = (
         db.query(Seat)
         .filter(Seat.id == seat_id)
-        .with_for_update(nowait=True)
+        .with_for_update()
         .first()
         )
     except OperationalError:
