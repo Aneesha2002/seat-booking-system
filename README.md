@@ -2,15 +2,15 @@
 
 A full-stack seat booking application built with FastAPI and React.
 
-The project demonstrates secure authentication, backend seat-locking logic, and safe handling of concurrent booking attempts.
+This project demonstrates authentication, seat reservation, and safe concurrent booking using PostgreSQL row-level locking.
 
 ---
 
 ## Overview
 
-This system simulates a real-world seat reservation workflow where multiple users interact with the same seats concurrently.
+This system simulates a real-world seat booking workflow where multiple users can attempt to reserve the same seats at the same time.
 
-To prevent double booking, the backend implements a **temporary seat locking mechanism with database-level concurrency control**. When a user selects a seat, it is locked for a short duration so that other users cannot book it simultaneously. If the booking is completed successfully, the seat becomes permanently reserved. If not, the lock expires automatically and the seat becomes available again.
+To prevent double booking, the backend uses **PostgreSQL row-level locking (SELECT FOR UPDATE)** and a temporary seat locking mechanism. A seat is locked for a short time before booking is confirmed. If the booking is not completed, the lock expires automatically based on a timeout.
 
 ---
 
@@ -19,9 +19,10 @@ To prevent double booking, the backend implements a **temporary seat locking mec
 ### Backend
 - Python
 - FastAPI
-- SQLAlchemy
-- JWT authentication
-- PostgreSQL / SQLite (development)
+- SQLAlchemy ORM
+- PostgreSQL
+- JWT authentication (python-jose)
+- Passlib (bcrypt)
 - Deployment: Render
 
 ### Frontend
@@ -33,97 +34,105 @@ To prevent double booking, the backend implements a **temporary seat locking mec
 
 ## Authentication
 
-The system uses **JWT-based authentication** to secure protected routes.
+The system uses JWT-based authentication.
 
 Features:
 - User signup and login
 - Password hashing using bcrypt
-- JWT token generation after successful authentication
-- Protected endpoints requiring valid token
+- JWT token generation on login/signup
+- Protected routes using OAuth2 Bearer token
 
-Tokens are stored client-side and sent with each request for authorization.
+Tokens are stored on the client and sent with each request.
 
 ---
 
-## Seat Booking Logic
+## Seat Model
 
-Each seat has three possible states:
+Each seat has:
 
-- Available → Seat is free
-- Locked → Temporarily reserved by a user
-- Booked → Permanently reserved
+- `id`
+- `status` → available | locked | booked
+- `locked_at` → timestamp when seat was locked
+- `locked_by` → user ID who locked the seat
 
-### Booking Flow
+---
+
+## Seat Booking Flow
 
 1. User logs in
-2. User fetches available seats
+2. User fetches all seats
 3. User locks a seat
-4. Seat is temporarily reserved for that user
-5. User confirms booking
-6. Seat becomes permanently booked
+4. Seat becomes temporarily locked for that user
+5. User attempts booking
+6. Seat becomes permanently booked if successful
 
-If the booking is not completed within the timeout period, the lock expires automatically.
+If booking is not completed within the timeout period, the lock expires automatically.
 
 ---
 
 ## Booking Rules
 
 - Only one user can lock a seat at a time
-- Only the user who locked a seat can book it
-- Lock expires automatically after a timeout
-- Locked seats are not available to other users
-- Booking is only allowed after locking
+- Only the user who locked the seat can book it
+- Lock expires after a fixed timeout (1 minute)
+- Locked seats cannot be booked by other users
+- Booking requires prior locking
 
 ---
 
 ## API Endpoints
 
 ### Authentication
-- POST `/signup` → Register user
-- POST `/login` → Login and receive JWT token
+- POST `/signup` → Create new user
+- POST `/login` → Login user and return JWT token
 
 ### Health Check
 - GET `/` → API status
 
-### Seats (Protected)
-- POST `/seats/init` → Initialize seats
+### Seats (Protected Routes)
+- POST `/seats/init` → Initialize 30 seats
 - GET `/seats` → Get all seats
 - POST `/seats/{seat_id}/lock` → Lock a seat
-- POST `/seats/{seat_id}/book` → Confirm booking
+- POST `/seats/{seat_id}/book` → Book a seat
+
+All seat routes require authentication.
 
 ---
 
 ## Concurrency Handling
 
-To prevent race conditions when multiple users try to access the same seat, the backend uses **database-level row locking**.
+To prevent race conditions when multiple users try to book the same seat, the backend uses:
 
-Key mechanisms:
-- Transactions
-- Row-level locking using SELECT FOR UPDATE
+- PostgreSQL **row-level locking (SELECT FOR UPDATE)**
+- SQLAlchemy transactions
 - Seat status validation before updates
 
-This ensures that concurrent requests cannot modify the same seat simultaneously, preventing double booking at the database level.
+This ensures that only one request can modify a seat at a time.
 
 ---
 
 ## Lock Expiration
 
-Locks are temporary and simulate real-world booking systems.
-
 - Lock timeout: 1 minute
-- If booking is not completed in time:
-  - Lock expires automatically
-  - Seat becomes available again
+- Stored fields:
+  - `locked_at`
+  - `locked_by`
+
+If the lock is not completed within the timeout:
+- It is treated as expired
+- Seat becomes available again
+
+Lock cleanup happens when seats are fetched.
 
 ---
 
 ## Payment Simulation
 
-A mock payment step is included to simulate real-world behavior.
+A mock payment step is included to simulate real-world booking behavior.
 
-- Booking may randomly fail
-- If payment fails, seat remains locked until timeout
-- If successful, seat is marked as booked
+- Payment success is randomly simulated
+- If payment fails, seat remains locked until timeout expires
+- If payment succeeds, seat is marked as booked
 
 ---
 
@@ -144,35 +153,13 @@ https://seat-booking-system-omega.vercel.app/
 Backend:
 https://seat-booking-backend-9sam.onrender.com
 
-Note: Render free tier may cause a cold start delay on first request.
+Note: Render free tier may have cold start delay.
 
 ---
 
 ## Run Locally
 
 ### Backend
+```bash
 pip install -r requirements.txt
 uvicorn app.main:app --reload
-
-### Frontend
-npm install
-npm start
-
----
-
-## Design Notes
-
-- Backend enforces concurrency safety using database row locking
-- JWT authentication secures all booking operations
-- Stateless frontend communicates via REST APIs
-- System is designed to scale to PostgreSQL with minimal changes
-
----
-
-## Future Improvements
-
-- WebSocket-based real-time seat updates
-- Redis distributed locking for horizontal scaling
-- Real payment gateway integration
-- Booking history per user
-- Admin dashboard
