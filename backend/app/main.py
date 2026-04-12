@@ -4,12 +4,16 @@ from sqlalchemy.orm import Session
 from datetime import datetime, timedelta
 from typing import List
 import random
-from fastapi.security import OAuth2PasswordRequestForm
 from app.db import SessionLocal, engine
 from app.models import Seat, Base, User
 from app.schemas import SeatOut, UserCreate, Token
 from app.auth import create_access_token, get_current_user
 from app.auth import verify_password,hash_password
+from datetime import timezone
+from sqlalchemy.exc import OperationalError
+import logging
+import os
+logging.basicConfig(level=logging.INFO)
 # --- App setup ---
 app = FastAPI()
 
@@ -57,8 +61,8 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
         if existing:
             raise HTTPException(status_code=400, detail="Username already exists")
 
-        if len(user.password) < 6:
-            raise HTTPException(status_code=400, detail="Password must be at least 6 characters")
+        if len(user.password) < 8:
+            raise HTTPException(400, "Password must be at least 8 characters")
 
         new_user = User(
             username=user.username,
@@ -77,7 +81,8 @@ def signup(user: UserCreate, db: Session = Depends(get_db)):
 
     except Exception as e:
         db.rollback()   
-        print("SIGNUP ERROR:", e)
+        logger = logging.getLogger(__name__)
+        logger.error("Signup failed", exc_info=True)
         raise HTTPException(status_code=500, detail="Signup failed")
 
 @app.post("/login", response_model=Token)
@@ -135,33 +140,36 @@ def lock_seat(
     db: Session = Depends(get_db),
     current_user: int = Depends(get_current_user)
 ):
-    seat = (
+    try:
+        seat = (
         db.query(Seat)
         .filter(Seat.id == seat_id)
-        .with_for_update()
+        .with_for_update(nowait=True)
         .first()
-    )
+        )
+    except OperationalError:
+        raise HTTPException(409, "Seat is being accessed by another user")
 
     if not seat:
         raise HTTPException(404, "Seat not found")
 
     if seat.status == "booked":
-        raise HTTPException(400, "Seat already booked")
+        raise HTTPException(409,"Seat already booked")
 
     if (
         seat.status == "locked"
         and seat.locked_at
-        and datetime.utcnow() - seat.locked_at < LOCK_TIMEOUT
+        and datetime.now(timezone.utc)- seat.locked_at < LOCK_TIMEOUT
         and seat.locked_by != current_user
     ):
         raise HTTPException(400, "Seat temporarily locked")
 
     seat.status = "locked"
-    seat.locked_at = datetime.utcnow()
+    seat.locked_at = datetime.now(timezone.utc)
     seat.locked_by = current_user
 
     db.commit()
-    return {"message": "Seat locked"}
+    return {"status": "locked", "seat_id": seat_id}
 
 
 @app.post("/seats/{seat_id}/book")
@@ -170,12 +178,15 @@ def book_seat(
     db: Session = Depends(get_db),
     current_user: int = Depends(get_current_user)
 ):
-    seat = (
+    try:
+        seat = (
         db.query(Seat)
         .filter(Seat.id == seat_id)
-        .with_for_update()
+        .with_for_update(nowait=True)
         .first()
-    )
+        )
+    except OperationalError:
+        raise HTTPException(409, "Seat is being accessed by another user")
 
     if not seat:
         raise HTTPException(404, "Seat not found")
@@ -186,7 +197,7 @@ def book_seat(
     if seat.locked_by != current_user:
         raise HTTPException(403, "Not your seat")
 
-    if datetime.utcnow() - seat.locked_at > LOCK_TIMEOUT:
+    if datetime.now(timezone.utc) - seat.locked_at > LOCK_TIMEOUT:
         raise HTTPException(400, "Lock expired")
 
     # --- Payment simulation ---
@@ -195,19 +206,10 @@ def book_seat(
 
     seat.status = "booked"
     seat.locked_at = None
+    seat.locked_by = None
 
     db.commit()
     return {"message": "Seat booked successfully"}
-
-
-@app.post("/seats/reset")
-def reset_seats(
-    db: Session = Depends(get_db),
-    current_user: int = Depends(get_current_user)
-):
-    db.query(Seat).delete()
-    db.commit()
-    return {"message": "All seats deleted"}
 
 # =========================
 # Helpers
@@ -216,7 +218,7 @@ def reset_seats(
 def cleanup_expired_locks(db: Session):
     expired = db.query(Seat).filter(
         Seat.status == "locked",
-        Seat.locked_at < datetime.utcnow() - LOCK_TIMEOUT
+        Seat.locked_at < datetime.now(timezone.utc) - LOCK_TIMEOUT
     ).all()
 
     for seat in expired:
