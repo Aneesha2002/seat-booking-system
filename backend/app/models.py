@@ -14,6 +14,6 @@ class Seat(Base):
     __tablename__ = "seats"
 
     id = Column(Integer, primary_key=True)
-    status = Column(String, default="available", nullable=False)  # available, locked, booked
+    status = Column(String, default="available", nullable=False,index=True)  # available, locked, booked
     locked_at = Column(DateTime, nullable=True)                   # timestamp when locked
-    locked_by = Column(Integer, nullable=True)                    # user ID who locked it
+    locked_by = Column(Integer, nullable=True,index=True)                    # user ID who locked it
