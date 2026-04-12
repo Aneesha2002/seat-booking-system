@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 from typing import List
-
+from app.models import Seat
 from app.db import SessionLocal, engine
 from app.models import Base
 from app.schemas import UserCreate, Token, SeatOut
