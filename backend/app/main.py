@@ -131,7 +131,7 @@ def list_seats(
     current_user: int = Depends(get_current_user)
 ):
     cleanup_expired_locks(db)
-    return db.query(Seat).all()
+    return db.query(Seat).order_by(Seat.id).all()
 
 
 @app.post("/seats/{seat_id}/lock")
