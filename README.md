@@ -10,7 +10,7 @@ This project demonstrates authentication, seat reservation, and safe concurrent 
 
 This system simulates a real-world seat booking workflow where multiple users can attempt to reserve the same seats at the same time.
 
-To prevent double booking, the backend uses **PostgreSQL row-level locking (SELECT FOR UPDATE)** and a temporary seat locking mechanism. A seat is locked for a short time before booking is confirmed. If the booking is not completed, the lock expires automatically based on a timeout.
+To prevent double booking, the backend uses PostgreSQL row-level locking (SELECT FOR UPDATE) and a temporary seat locking mechanism. A seat is locked for a short duration before booking is confirmed. If the booking is not completed within the timeout period, the lock expires automatically and the seat becomes available again.
 
 ---
 
@@ -34,12 +34,12 @@ To prevent double booking, the backend uses **PostgreSQL row-level locking (SELE
 
 ## Authentication
 
-The system uses JWT-based authentication.
+The system uses JWT-based authentication to secure protected routes.
 
 Features:
 - User signup and login
 - Password hashing using bcrypt
-- JWT token generation on login/signup
+- JWT token generation after authentication
 - Protected routes using OAuth2 Bearer token
 
 Tokens are stored on the client and sent with each request.
@@ -50,10 +50,10 @@ Tokens are stored on the client and sent with each request.
 
 Each seat has:
 
-- `id`
-- `status` → available | locked | booked
-- `locked_at` → timestamp when seat was locked
-- `locked_by` → user ID who locked the seat
+- id
+- status → available | locked | booked
+- locked_at → timestamp when seat was locked
+- locked_by → user ID who locked the seat
 
 ---
 
@@ -66,15 +66,15 @@ Each seat has:
 5. User attempts booking
 6. Seat becomes permanently booked if successful
 
-If booking is not completed within the timeout period, the lock expires automatically.
+If booking is not completed within the timeout period, the lock expires automatically and the seat becomes available again.
 
 ---
 
 ## Booking Rules
 
 - Only one user can lock a seat at a time
-- Only the user who locked the seat can book it
-- Lock expires after a fixed timeout (1 minute)
+- Only the user who locked a seat can book it
+- Lock expires after 1 minute
 - Locked seats cannot be booked by other users
 - Booking requires prior locking
 
@@ -83,17 +83,17 @@ If booking is not completed within the timeout period, the lock expires automati
 ## API Endpoints
 
 ### Authentication
-- POST `/signup` → Create new user
-- POST `/login` → Login user and return JWT token
+- POST /signup → Create new user
+- POST /login → Login and receive JWT token
 
 ### Health Check
-- GET `/` → API status
+- GET / → API status
 
 ### Seats (Protected Routes)
-- POST `/seats/init` → Initialize 30 seats
-- GET `/seats` → Get all seats
-- POST `/seats/{seat_id}/lock` → Lock a seat
-- POST `/seats/{seat_id}/book` → Book a seat
+- POST /seats/init → Initialize 30 seats
+- GET /seats → Get all seats
+- POST /seats/{seat_id}/lock → Lock a seat
+- POST /seats/{seat_id}/book → Book a seat
 
 All seat routes require authentication.
 
@@ -103,7 +103,7 @@ All seat routes require authentication.
 
 To prevent race conditions when multiple users try to book the same seat, the backend uses:
 
-- PostgreSQL **row-level locking (SELECT FOR UPDATE)**
+- PostgreSQL row-level locking (SELECT FOR UPDATE)
 - SQLAlchemy transactions
 - Seat status validation before updates
 
@@ -114,15 +114,15 @@ This ensures that only one request can modify a seat at a time.
 ## Lock Expiration
 
 - Lock timeout: 1 minute
-- Stored fields:
-  - `locked_at`
-  - `locked_by`
+- Each seat stores:
+  - locked_at
+  - locked_by
 
 If the lock is not completed within the timeout:
 - It is treated as expired
 - Seat becomes available again
 
-Lock cleanup happens when seats are fetched.
+Lock cleanup happens during seat fetch requests.
 
 ---
 
@@ -131,8 +131,8 @@ Lock cleanup happens when seats are fetched.
 A mock payment step is included to simulate real-world booking behavior.
 
 - Payment success is randomly simulated
-- If payment fails, seat remains locked until timeout expires
-- If payment succeeds, seat is marked as booked
+- If booking fails, seat remains locked until timeout expires
+- If booking succeeds, seat status is updated to booked
 
 ---
 
@@ -153,13 +153,36 @@ https://seat-booking-system-omega.vercel.app/
 Backend:
 https://seat-booking-backend-9sam.onrender.com
 
-Note: Render free tier may have cold start delay.
+Note: Render free tier may have cold start delays.
 
 ---
 
 ## Run Locally
 
 ### Backend
-```bash
 pip install -r requirements.txt
 uvicorn app.main:app --reload
+
+### Frontend
+npm install
+npm start
+
+---
+
+## Design Notes
+
+- Service layer separates business logic from API routes
+- PostgreSQL handles concurrency using row-level locking
+- JWT authentication secures all booking endpoints
+- Stateless frontend communicates via REST APIs
+
+---
+
+## Future Improvements
+
+- WebSocket-based real-time seat updates
+- Background worker for lock cleanup (Celery or cron job)
+- Redis distributed locking for horizontal scaling
+- Real payment gateway integration
+- Booking history per user
+- Admin dashboard
