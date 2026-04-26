@@ -11,8 +11,7 @@ from app.auth import get_current_user
 from app.services.auth_service import create_user, authenticate_user
 from app.services.seat_service import (
     lock_seat,
-    book_seat,
-    cleanup_expired_locks
+    book_seat
 )
 
 # -------------------------
@@ -77,7 +76,6 @@ def list_seats(
     db: Session = Depends(get_db),
     current_user: int = Depends(get_current_user)
 ):
-    cleanup_expired_locks(db)
     return db.query(Seat).order_by(Seat.id).all()
 
 
