@@ -76,7 +76,14 @@ def list_seats(
     db: Session = Depends(get_db),
     current_user: int = Depends(get_current_user)
 ):
-    return db.query(Seat).order_by(Seat.id).all()
+    seats = db.query(Seat).order_by(Seat.id).all()
+
+    for seat in seats:
+        release_expired_lock(seat)
+
+    db.commit()  # IMPORTANT
+
+    return seats
 
 
 @app.post("/seats/{seat_id}/lock")
