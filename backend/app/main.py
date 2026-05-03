@@ -11,7 +11,8 @@ from app.auth import get_current_user
 from app.services.auth_service import create_user, authenticate_user
 from app.services.seat_service import (
     lock_seat,
-    book_seat
+    book_seat,
+    release_expired_lock
 )
 
 # -------------------------
